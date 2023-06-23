@@ -68,7 +68,6 @@ class TripListSerializer(TripSerializer):
 
 
 class TicketSerializer(serializers.ModelSerializer):
-    trip = TripListSerializer(many=False, read_only=True)
     
     def validate(self, attrs):
         data = super(TicketSerializer, self).validate(attrs)
@@ -90,8 +89,8 @@ class TicketSerializer(serializers.ModelSerializer):
         # ]
 
 
-# class TicketListSerializer(TicketSerializer):
-#     trip = TripListSerializer(many=False, read_only=True)
+class TicketListSerializer(TicketSerializer):
+    trip = TripListSerializer(many=False, read_only=True)
 
 
 class TripDetailSerializer(TripSerializer):
@@ -122,3 +121,7 @@ class OrderSerializer(serializers.ModelSerializer):
             for tickets_data in tickets_data:
                 Ticket.objects.create(order=order, **tickets_data)
             return order
+
+
+class OrderListSerializer(OrderSerializer):
+    tickets = TicketListSerializer(many=True, read_only=True)
