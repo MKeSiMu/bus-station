@@ -1,12 +1,15 @@
 from django.db.models import Count, F
 from rest_framework import status, generics, mixins, viewsets
+from rest_framework.authentication import TokenAuthentication
 from rest_framework.decorators import api_view
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
+from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from station.models import Bus, Trip, Facility, Ticket, Order
+from station.permissions import IsAdminOrIsAuthenticatedReadOnly
 from station.serializers import (
     BusSerializer,
     TripSerializer,
@@ -170,10 +173,23 @@ class base GenericViewSets
 class base ViewSets
 """
 
+# Anon None
+# IsAuthenticated: list, retrieve
+# IsAdmin: create, update, partial_update, destroy
+
 
 class FacilityViewSet(viewsets.ModelViewSet):
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
+    authentication_classes = (TokenAuthentication, )
+    permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
+    # permission_classes = (IsAuthenticated, )
+
+    # def get_permissions(self):
+    #     if self.action in ("create", "update", "partial_update", "destroy"):
+    #         return [IsAdminUser()]
+    #
+    #     return super().get_permissions()
 
 
 class BusViewSet(viewsets.ModelViewSet):
