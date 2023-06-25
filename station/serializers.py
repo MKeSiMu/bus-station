@@ -50,6 +50,13 @@ class BusDetailSerializer(BusSerializer):
     facilities = FacilitySerializer(many=True, read_only=True)
 
 
+class BusImageSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Bus
+        fields = ("id", "image")
+
+
 class TripSerializer(serializers.ModelSerializer):
 
     class Meta:

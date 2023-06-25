@@ -1,12 +1,14 @@
 from django.db.models import Count, F
+from drf_spectacular.utils import extend_schema, OpenApiParameter
 from rest_framework import status, generics, mixins, viewsets
 from rest_framework.authentication import TokenAuthentication
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view, action
 from rest_framework.generics import get_object_or_404
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated, IsAdminUser
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from station.models import Bus, Trip, Facility, Ticket, Order
 from station.permissions import IsAdminOrIsAuthenticatedReadOnly
@@ -17,7 +19,7 @@ from station.serializers import (
     FacilitySerializer,
     BusDetailSerializer,
     BusListSerializer,
-    TripDetailSerializer, TicketSerializer, OrderSerializer, OrderListSerializer,
+    TripDetailSerializer, TicketSerializer, OrderSerializer, OrderListSerializer, BusImageSerializer,
 )
 
 """
@@ -181,7 +183,7 @@ class base ViewSets
 class FacilityViewSet(viewsets.ModelViewSet):
     queryset = Facility.objects.all()
     serializer_class = FacilitySerializer
-    authentication_classes = (TokenAuthentication, )
+    # authentication_classes = (TokenAuthentication, )
     permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
     # permission_classes = (IsAuthenticated, )
 
@@ -195,6 +197,7 @@ class FacilityViewSet(viewsets.ModelViewSet):
 class BusViewSet(viewsets.ModelViewSet):
     queryset = Bus.objects.all()
     serializer_class = BusSerializer
+    permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
 
     @staticmethod
     def _params_to_ints(qs):
@@ -222,12 +225,37 @@ class BusViewSet(viewsets.ModelViewSet):
         if self.action == "retrieve":
             return BusDetailSerializer
 
+        if self.action == "upload_image":
+            return BusImageSerializer
+
         return BusSerializer
+
+    @action(methods=["POST"], detail=True, url_path="upload-image", permission_classes=[IsAdminUser])
+    def upload_image(self, request, pk=None):
+        """Endpoint for uploading image to specific bus"""
+        bus = self.get_object()
+        serializer = self.get_serializer(bus, data=self.request.data)
+
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                "facilities",
+                type={"type": "list", "items": {"type": "number"}},
+                description="Filter by Facility id(ex. ?facilities=1,3)"
+            )
+        ]
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
 
 
 class TripViewSet(viewsets.ModelViewSet):
     queryset = Trip.objects.all()
     serializer_class = TripSerializer
+    permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
 
     # N + 1 problem solved
     def get_queryset(self):
@@ -255,6 +283,7 @@ class TripViewSet(viewsets.ModelViewSet):
 class TicketViewSet(viewsets.ModelViewSet):
     queryset = Ticket.objects.all()
     serializer_class = TicketSerializer
+    permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
 
     def get_queryset(self):
         queryset = self.queryset
@@ -275,6 +304,7 @@ class OrderViewSet(viewsets.ModelViewSet):
     queryset = Order.objects.all()
     serializer_class = OrderSerializer
     pagination_class = OrderPagination
+    permission_classes = (IsAdminOrIsAuthenticatedReadOnly, )
 
     def get_queryset(self):
         queryset = self.queryset.filter(user=self.request.user)

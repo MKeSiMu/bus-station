@@ -1,6 +1,10 @@
+import os
+import uuid
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import UniqueConstraint
+from django.utils.text import slugify
 
 from app import settings
 
@@ -15,10 +19,19 @@ class Facility(models.Model):
         return f"{self.id}: {self.name}"
 
 
+def bus_image_file_path(instance, filename):
+    _, extension = os.path.splitext(filename)
+
+    filename = f"{slugify(instance.info)}-{uuid.uuid4()}.{extension}"
+
+    return os.path.join("uploads/buses/", filename)
+
+
 class Bus(models.Model):
     info = models.CharField(max_length=255, null=True)
     num_seats = models.IntegerField()
     facilities = models.ManyToManyField(Facility, related_name="buses")
+    image = models.ImageField(null=True, upload_to=bus_image_file_path)
 
     class Meta:
         verbose_name_plural = "buses"
@@ -49,8 +62,12 @@ class Trip(models.Model):
 
 class Ticket(models.Model):
     seat = models.IntegerField()
-    trip = models.ForeignKey("Trip", on_delete=models.CASCADE, related_name="tickets")
-    order = models.ForeignKey("Order", on_delete=models.CASCADE, related_name="tickets")
+    trip = models.ForeignKey(
+        "Trip", on_delete=models.CASCADE, related_name="tickets"
+    )
+    order = models.ForeignKey(
+        "Order", on_delete=models.CASCADE, related_name="tickets"
+    )
 
     class Meta:
         unique_together = ["seat", "trip"]
