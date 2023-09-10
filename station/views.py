@@ -239,13 +239,14 @@ class BusViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response(serializer.data, status=status.HTTP_200_OK)
+
     @extend_schema(
         parameters=[
             OpenApiParameter(
                 "facilities",
                 type={"type": "list", "items": {"type": "number"}},
                 description="Filter by Facility id(ex. ?facilities=1,3)"
-            )
+            ),
         ]
     )
     def list(self, request, *args, **kwargs):
